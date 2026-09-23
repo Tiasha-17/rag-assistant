@@ -1,0 +1,9 @@
+datasets>=2.19
+sentence-transformers>=3.0
+chromadb>=0.5
+ollama>=0.3
+pandas>=2.2
+numpy>=1.26
+matplotlib>=3.8
+tqdm>=4.66
+streamlit>=1.35
