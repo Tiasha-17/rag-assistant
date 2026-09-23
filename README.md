@@ -8,6 +8,8 @@ answer faithfulness (hallucination detection) — against a labeled question set
 
 Runs entirely locally and for free: no API keys, no cloud costs.
 
+![RAG Assistant demo](docs/app_screenshot.png)
+
 ## Project Overview
 
 1. Download a labeled Q&A dataset (SQuAD) and split it into a document corpus
