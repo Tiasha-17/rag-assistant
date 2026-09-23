@@ -1,0 +1,11 @@
+{
+  "num_questions": 150,
+  "k": 4,
+  "recall_at_4": 0.9467,
+  "precision_at_4": 0.2367,
+  "mrr": 0.8767,
+  "answer_f1": 0.3503,
+  "answer_exact_match": 0.06,
+  "answer_contains_gold": 0.84,
+  "faithfulness_rate": 0.9333
+}
