@@ -96,6 +96,21 @@ def retrieval_metrics(retrieved_doc_ids: list[str], gold_doc_id: str, k: int) ->
 
 # ---------- Faithfulness (LLM-as-judge) ----------
 
+# A model correctly declining to answer (because the retrieved context didn't
+# contain the answer) is faithful by definition -- there's no claim to check
+# for grounding. Scoring this with the LLM judge turned out to be unreliable:
+# on a manual audit it flagged refusals as UNFAITHFUL about as often as not,
+# even though the judge prompt explicitly said refusals are faithful. Rather
+# than trust the judge on a case with an unambiguous rule-based answer, this
+# short-circuits refusals to faithful=1.0 without spending a judge call on them.
+REFUSAL_MARKERS = ("don't know", "do not know", "cannot answer", "can't answer")
+
+
+def is_refusal(answer: str) -> bool:
+    lowered = answer.lower()
+    return any(marker in lowered for marker in REFUSAL_MARKERS)
+
+
 FAITHFULNESS_PROMPT = """You are auditing an AI assistant's answer for faithfulness to its source context.
 
 Context:
@@ -106,20 +121,25 @@ Answer given: {answer}
 
 Does the answer rely ONLY on facts stated in the context (faithful), or does it add
 claims not supported by the context, including outside/world knowledge (unfaithful)?
-An answer that correctly says "I don't know" when the context lacks the answer is faithful.
 
-Respond with exactly one word: FAITHFUL or UNFAITHFUL."""
+First, briefly list which specific facts in the answer are or are not supported by
+the context (one line). Then, on a new final line, respond with exactly one word:
+FAITHFUL or UNFAITHFUL."""
 
 
 def judge_faithfulness(question: str, answer: str, context: str) -> float:
+    if is_refusal(answer):
+        return 1.0
+
     prompt = FAITHFULNESS_PROMPT.format(context=context, question=question, answer=answer)
     response = ollama.chat(
         model=JUDGE_MODEL,
         messages=[{"role": "user", "content": prompt}],
         options={"temperature": 0.0},
     )
-    verdict = response["message"]["content"].strip().upper()
-    return 1.0 if "UNFAITHFUL" not in verdict and "FAITHFUL" in verdict else 0.0
+    # the verdict is the model's last line, after its one-line justification
+    last_line = response["message"]["content"].strip().splitlines()[-1].upper()
+    return 1.0 if "UNFAITHFUL" not in last_line and "FAITHFUL" in last_line else 0.0
 
 
 # ---------- Main harness ----------
